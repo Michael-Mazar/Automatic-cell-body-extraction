@@ -3,6 +3,10 @@ import cv2
 import matplotlib.pyplot as plt
 from skimage.feature import canny
 from skimage.transform import hough_circle, hough_circle_peaks
+from skimage import util,segmentation,exposure,filters, morphology,measure,feature,io
+from scipy import ndimage,stats,cluster,misc,spatial
+from sklearn.cluster import KMeans
+from sklearn.neighbors  import NearestNeighbors
 
 def compute_cell_statistics(img_data, circle_info, stat_to_compute='mean'):
     
@@ -270,3 +274,29 @@ def show_box_with_circle(box_data, box_idx, circle_coordinates, idx2inspect = No
     ax[1].add_patch(c)
     plt.show()
     print('Now showing circle found in box %d...\n'%box_idx[idx2inspect])
+
+
+
+def binMaskCorrection(img, thres_value):
+    """
+    This function generates a binary mask from the original image and corrects it for noise and holes
+    """
+    bin_mask = img > thres_value                             # generate binary mask from original image
+    bin_mask = morphology.binary_dilation (bin_mask,morphology.disk(3))                        
+#    bin_mask = morphology.binary_opening (bin_mask,morphology.disk(3))                 # remove white noise for
+    bin_mask = morphology.binary_closing(bin_mask,morphology.disk(3))                   # remove dark noise for
+    bin_mask = ndimage.binary_fill_holes(bin_mask, morphology.disk(5))                  # filling holes
+    bin_mask = morphology.binary_closing (bin_mask,morphology.disk(3))                        
+    return bin_mask
+
+def borderCorrection( bin_mask_border, maskCorrectR):                 # need shape correction 
+    bin_mask_border = morphology.binary_dilation  (bin_mask_border,morphology.disk(5))       # # remove dark noise for
+
+    bin_mask_border = morphology.binary_closing  (bin_mask_border,morphology.disk(maskCorrectR))       # # remove dark noise for
+    bin_mask_border = ndimage.binary_fill_holes  (bin_mask_border,morphology.disk(maskCorrectR))       # filling holes
+#                bin_mask_border = morphology.binary_closing  (bin_mask_border,morphology.disk(maskCorrectR))       # # remove dark noise for
+    bin_mask_border = morphology.binary_opening  (bin_mask_border,morphology.disk(5))                # # remove white noise for
+    
+    bin_mask_border = morphology.binary_erosion  (bin_mask_border,morphology.disk(5))       
+    
+    return bin_mask_border

@@ -37,7 +37,22 @@ train_data, train_labels, _, test_data, test_labels, _ = output
 # Load the images and masks into napari
 # =============================================================================
 # %% 
-img = train_data[0]
+# img = train_data[0]
+
+# Alternative loading of iamge
+from PIL import Image
+# Replace 'your_image.tiff' with the path to your TIFF image file
+image_path = r'C:\Users\micha\Documents\Projects\Automatic cell body extraction\dev\Flurocells\drg_cells\2022_10_20_CSU-CY5-50-Pinhole.tif'
+# Load the image
+img = Image.open(image_path)
+img = np.array(img)
+
+# %% Load an array of images
+Raw_path = os.path.join(image_dir, '*.tif')
+filesRaw = glob.glob(Raw_path)
+filesRaw.sort
+
+# %% 
 mask = train_labels[0]
 gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 gray = gray.astype(np.uint16)

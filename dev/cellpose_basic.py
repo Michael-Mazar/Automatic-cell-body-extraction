@@ -14,6 +14,7 @@ import logging
 import napari
 import torch
 from skimage.measure import regionprops
+import cv2
 #%% 
 # =============================================================================
 # Preprocess fluroscent data file names
@@ -63,7 +64,7 @@ def load_images_from_folder(folder_path):
     return images
 
 train_dir = r'C:\Users\micha\Documents\Projects\Automatic cell body extraction\dev\Flurocells\all_training_images'
-
+image_path = r'C:\Users\micha\Documents\Projects\Automatic cell body extraction\dev\Flurocells\drg_cells\test_drg_image.png'
 
 # imgs = load_images_from_folder(r'C:\Users\micha\Documents\Projects\Automatic cell body extraction\dev\Flurocells\all_images\images')
 # labels = load_images_from_folder(r'C:\Users\micha\Documents\Projects\Automatic cell body extraction\dev\Flurocells\all_masks\masks')
@@ -80,15 +81,35 @@ img = train_data[random_number]
 # =============================================================================
 # Preprocess the image
 # =============================================================================
-# from PIL import Image
+from PIL import Image
 
-# # Replace 'your_image.tiff' with the path to your TIFF image file
-# image_path = r'C:\Users\micha\Documents\Projects\Automatic cell body extraction\dev\Flurocells\drg_cells\2022_10_20_CSU-CY5-50-Pinhole.tif'
+# Replace 'your_image.tiff' with the path to your TIFF image file
+image_path = r'C:\Users\micha\Documents\Projects\Automatic cell body extraction\dev\Flurocells\drg_cells\2022_10_20_CSU-CY5-50-Pinhole.tif'
+image_path = r'C:\Users\micha\Documents\Projects\Automatic cell body extraction\dev\Flurocells\drg_cells\test_drg_image.png'
+# Load the image
+img = Image.open(image_path)
+img = np.array(img)
 
-# # Load the image
-# img = Image.open(image_path)
-# img = np.array(img)
 
+# %% Perform median filtering on image
+# Apply median filter with a specific kernel size
+kernel_size = 5  # Kernel size must be a positive odd number
+median_filtered_image = cv2.medianBlur(img, kernel_size)
+
+# Display the original and filtered image
+plt.figure(figsize=(10, 5))
+
+plt.subplot(1, 2, 1)
+plt.title('Original Image')
+plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))  # Convert BGR to RGB for matplotlib
+plt.axis('off')
+
+plt.subplot(1, 2, 2)
+plt.title('Median Filtered Image')
+plt.imshow(cv2.cvtColor(median_filtered_image, cv2.COLOR_BGR2RGB))  # Convert BGR to RGB for matplotlib
+plt.axis('off')
+
+plt.show()
 # %%
 # =============================================================================
 # Run Cellpose
@@ -97,8 +118,13 @@ channels = [0,0]
 use_GPU = True
 model = models.CellposeModel(gpu=use_GPU, model_type='cyto2')
 masks, flows, styles = model.eval(img, 
-                                         diameter=30, 
-                                         channels=channels)
+                                diameter=20, 
+                                channels=channels,
+                                cellprob_threshold = 0,
+                                flow_threshold = 0.8,
+                                resample = True
+                                # stitch_threshold = 0,
+                                )
 # masks, flows, styles = model.eval(image,
 #                                       diameter=146, #determined during training
 #                                       resample = True, # Results in more accurate boundaries
@@ -118,7 +144,7 @@ image_layer = viewer.add_image(img)
 label_layer = viewer.add_labels(masks)
 viewer.add_image(flows[0], name = 'Flows', visible=False)
 
-# Show results in matplotlib as well
+# %% Show results in matplotlib as well
 fig = plt.figure(figsize=(12,5))
 plot.show_segmentation(fig, img, masks, flows[0], channels=[0,0])
 plt.tight_layout()
